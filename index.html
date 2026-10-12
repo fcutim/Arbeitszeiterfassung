@@ -286,13 +286,14 @@ let statO=0;
 function stat(){
  const t=today(),R=range,o=statO,isW=R==="week";let a,b,lab;
  if(isW){a=addD(monday(t),7*o);b=addD(a,6);lab="KW "+isoWeek(a)+" · "+dl(ymd(a),{day:"2-digit",month:"2-digit"})+" – "+dl(ymd(b),{day:"2-digit",month:"2-digit",year:"numeric"})}
+ else if(R==="day"){a=addD(t,o);b=a;lab=dl(ymd(a),{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
  else if(R==="month"){a=new Date(t.getFullYear(),t.getMonth()+o,1);b=new Date(a.getFullYear(),a.getMonth()+1,0);lab=a.toLocaleDateString("de-DE",{month:"long",year:"numeric"})}
  else{a=new Date(t.getFullYear()+o,0,1);b=new Date(a.getFullYear(),11,31);lab=String(a.getFullYear())}
  const ist=sum(a,b),pdv=perDay(),sollFull=workdays(a,b)*pdv,sollNow=workdays(a,t<b?t:b)*pdv,ot=ist-sollNow,r=+S.set.rate||0,pay=sumPay(a,b);
- const days=[];if(R==="year"){for(let m=0;m<12;m++){const s=new Date(a.getFullYear(),m,1);days.push({v:sum(s,new Date(a.getFullYear(),m+1,0)),l:s.toLocaleDateString("de-DE",{month:"short"}).slice(0,3),t:s.toLocaleDateString("de-DE",{month:"long"})})}}else for(let d=new Date(a);d<=b;d=addD(d,1)){const e=S.entries[ymd(d)];days.push({v:e?net(e):0,l:isW?d.toLocaleDateString("de-DE",{weekday:"short"}).slice(0,2):d.getDate(),t:dl(ymd(d))})}
+ const days=[];if(R==="year"){for(let m=0;m<12;m++){const s=new Date(a.getFullYear(),m,1);days.push({v:sum(s,new Date(a.getFullYear(),m+1,0)),l:s.toLocaleDateString("de-DE",{month:"short"}).slice(0,3),t:s.toLocaleDateString("de-DE",{month:"long"})})}}else for(let d=new Date(R==="day"?monday(a):a);d<=(R==="day"?addD(monday(a),6):b);d=addD(d,1)){const e=S.entries[ymd(d)];days.push({v:e?net(e):0,l:isW||R==="day"?d.toLocaleDateString("de-DE",{weekday:"short"}).slice(0,2):d.getDate(),t:dl(ymd(d))})}
  const wk=[];const m0=monday(t<b?t:b);for(let i=7;i>=0;i--){const s=addD(m0,-7*i);wk.push({v:sum(s,addD(s,6)),l:"KW"+isoWeek(s),t:"Woche ab "+dl(ymd(s))})}
  return `<h1>Statistiken</h1><p class="sub">Soll vs. Ist · Überstunden</p>
- <div class="seg">${[["week","Woche"],["month","Monat"],["year","Jahr"]].map(x=>`<button data-r="${x[0]}" class="${R===x[0]?"on":""}">${x[1]}</button>`).join("")}</div>
+ <div class="seg">${[["day","Tag"],["week","Woche"],["month","Monat"],["year","Jahr"]].map(x=>`<button data-r="${x[0]}" class="${R===x[0]?"on":""}">${x[1]}</button>`).join("")}</div>
  <div class="cn"><button class="ib" id="sp">‹</button><b>${lab}</b><button class="ib" id="sn" ${o>=0?'disabled style="opacity:.35"':""}>›</button></div>
  <div class="stats"><div class="card"><div class="mu">Ist</div><div class="big">${f1(ist)} h</div></div>
  <div class="card"><div class="mu">${o?"Soll":"Soll bis heute"}</div><div class="big">${f1(sollNow)} h</div></div>
