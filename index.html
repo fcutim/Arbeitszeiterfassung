@@ -43,6 +43,15 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
 .day.w{background:color-mix(in srgb,var(--ac2) 28%,var(--card));border-color:var(--ac2)}.day.v{background:color-mix(in srgb,#f5a524 30%,var(--card));border-color:#f5a524}.day.t{outline:2px solid var(--ac)}
 .cn{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.cn b{font-size:18px;text-transform:capitalize}.tile{margin-bottom:12px}.msg.er{background:var(--neg);color:#fff}
 .chips{display:flex;gap:8px;margin-bottom:14px}.chips button{flex:1;min-width:0;border:1px solid var(--bd);background:var(--card);color:var(--mu);border-radius:14px;padding:8px 2px;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;line-height:1.25}.chips button.on{background:var(--ac);color:#fff;border-color:var(--ac)}.chips small{font-size:10px}.chips b{font-size:17px;color:inherit}.chips i{font-style:normal;font-size:10px;height:12px}
+.tg{display:flex;align-items:center;justify-content:space-between}
+.switch{font-size:17px;position:relative;display:inline-block;width:3.5em;height:2em;cursor:pointer;flex:none}
+.switch input{opacity:0;width:0;height:0;min-height:0;padding:0;border:0}
+.slider{--background:#20262c;position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:var(--background);transition:.5s;border-radius:30px}
+.slider:before{position:absolute;content:"";height:1.4em;width:1.4em;border-radius:50%;left:10%;bottom:15%;box-shadow:inset 8px -4px 0 0 #ececd9,-4px 1px 4px 0 #dadada;background:var(--background);transition:.5s}
+.decoration{position:absolute;content:"";height:2px;width:2px;border-radius:50%;right:20%;top:15%;background:#e5f041e6;backdrop-filter:blur(10px);transition:all .5s;box-shadow:-7px 10px 0 #e5f041e6,8px 15px 0 #e5f041e6,-17px 1px 0 #e5f041e6,-20px 10px 0 #e5f041e6,-7px 23px 0 #e5f041e6,-15px 25px 0 #e5f041e6}
+input:checked~.decoration{transform:translateX(-20px);width:10px;height:10px;background:#fff;box-shadow:-12px 0 0 #fff,-6px 0 0 1.6px #fff,5px 15px 0 1px #fff,1px 17px 0 #fff,10px 17px 0 #fff}
+input:checked+.slider{background-color:#5494de}
+input:checked+.slider:before{transform:translateX(100%);box-shadow:inset 15px -4px 0 15px #efdf2b,0 0 10px 0 #efdf2b}
 details{margin-top:16px;border:1px solid var(--bd);border-radius:14px;padding:0 14px}
 summary{cursor:pointer;padding:14px 0;font-weight:600;list-style:none;display:flex;justify-content:space-between}summary::after{content:"▾";color:var(--mu);transition:transform .2s}details[open] summary::after{transform:rotate(180deg)}summary::-webkit-details-marker{display:none}
 .rule{display:grid;grid-template-columns:1fr 1fr 78px 40px;gap:8px;align-items:end;margin-bottom:10px}
@@ -202,22 +211,28 @@ function chart(items,soll){
   s+=`<rect x="${x}" y="${y(it.v)}" width="${bw}" height="${Math.max(0,H-pb-y(it.v))}" rx="5" fill="${it.v>=soll?"var(--ac2)":"var(--ac)"}" opacity="${it.v?1:.25}"><title>${it.t}: ${f1(it.v)} h</title></rect><text x="${x+bw/2}" y="${H-8}" text-anchor="middle">${it.l}</text>`});
  return s+"</svg>";
 }
+let statO=0;
 function stat(){
- const t=today(),isW=range==="week",a=isW?monday(t):new Date(t.getFullYear(),t.getMonth(),1),b=isW?addD(a,6):new Date(t.getFullYear(),t.getMonth()+1,0);
+ const t=today(),R=range,o=statO,isW=R==="week";let a,b,lab;
+ if(isW){a=addD(monday(t),7*o);b=addD(a,6);lab="KW "+isoWeek(a)+" · "+dl(ymd(a),{day:"2-digit",month:"2-digit"})+" – "+dl(ymd(b),{day:"2-digit",month:"2-digit",year:"numeric"})}
+ else if(R==="month"){a=new Date(t.getFullYear(),t.getMonth()+o,1);b=new Date(a.getFullYear(),a.getMonth()+1,0);lab=a.toLocaleDateString("de-DE",{month:"long",year:"numeric"})}
+ else{a=new Date(t.getFullYear()+o,0,1);b=new Date(a.getFullYear(),11,31);lab=String(a.getFullYear())}
  const ist=sum(a,b),pdv=perDay(),sollFull=workdays(a,b)*pdv,sollNow=workdays(a,t<b?t:b)*pdv,ot=ist-sollNow,r=+S.set.rate||0,pay=sumPay(a,b);
- const days=[];for(let d=new Date(a);d<=b;d=addD(d,1)){const e=S.entries[ymd(d)];days.push({v:e?net(e):0,l:isW?d.toLocaleDateString("de-DE",{weekday:"short"}).slice(0,2):d.getDate(),t:dl(ymd(d))})}
- const wk=[];const m0=monday(t);for(let i=7;i>=0;i--){const s=addD(m0,-7*i);wk.push({v:sum(s,addD(s,6)),l:"KW"+isoWeek(s),t:"Woche ab "+dl(ymd(s))})}
+ const days=[];if(R==="year"){for(let m=0;m<12;m++){const s=new Date(a.getFullYear(),m,1);days.push({v:sum(s,new Date(a.getFullYear(),m+1,0)),l:s.toLocaleDateString("de-DE",{month:"short"}).slice(0,3),t:s.toLocaleDateString("de-DE",{month:"long"})})}}else for(let d=new Date(a);d<=b;d=addD(d,1)){const e=S.entries[ymd(d)];days.push({v:e?net(e):0,l:isW?d.toLocaleDateString("de-DE",{weekday:"short"}).slice(0,2):d.getDate(),t:dl(ymd(d))})}
+ const wk=[];const m0=monday(t<b?t:b);for(let i=7;i>=0;i--){const s=addD(m0,-7*i);wk.push({v:sum(s,addD(s,6)),l:"KW"+isoWeek(s),t:"Woche ab "+dl(ymd(s))})}
  return `<h1>Statistiken</h1><p class="sub">Soll vs. Ist · Überstunden</p>
- <div class="seg"><button data-r="week" class="${isW?"on":""}">Woche</button><button data-r="month" class="${isW?"":"on"}">Monat</button></div>
+ <div class="seg">${[["week","Woche"],["month","Monat"],["year","Jahr"]].map(x=>`<button data-r="${x[0]}" class="${R===x[0]?"on":""}">${x[1]}</button>`).join("")}</div>
+ <div class="cn"><button class="ib" id="sp">‹</button><b>${lab}</b><button class="ib" id="sn" ${o>=0?'disabled style="opacity:.35"':""}>›</button></div>
  <div class="stats"><div class="card"><div class="mu">Ist</div><div class="big">${f1(ist)} h</div></div>
- <div class="card"><div class="mu">Soll bis heute</div><div class="big">${f1(sollNow)} h</div></div>
+ <div class="card"><div class="mu">${o?"Soll":"Soll bis heute"}</div><div class="big">${f1(sollNow)} h</div></div>
  <div class="card"><div class="mu">Überstunden</div><div class="big ${ot>=0?"pos":"neg"}">${ot>=0?"+":""}${f1(ot)} h</div></div>
  <div class="card"><div class="mu">${r?"Verdienst":"Soll gesamt"}</div><div class="big">${r?eur(pay.t):f1(sollFull)+" h"}</div>${r&&pay.s?`<div class="mu">davon Zuschläge ${eur(pay.s)}</div>`:""}</div></div>
- <div class="card"><h2>Tägliche Stunden (${isW?"diese Woche":"dieser Monat"})</h2><div class="chart">${chart(days,pdv)}</div><p class="mu" style="margin:6px 0 0">Gestrichelt: Tages-Soll (${f1(pdv)} h)</p></div>
+ <div class="card"><h2>${R==="year"?"Stunden pro Monat":"Tägliche Stunden"}</h2><div class="chart">${chart(days,R==="year"?sollFull/12:pdv)}</div><p class="mu" style="margin:6px 0 0">Gestrichelt: ${R==="year"?"Ø Monats-Soll":"Tages-Soll"} (${f1(R==="year"?sollFull/12:pdv)} h)</p></div>
  <div class="card"><h2>Wochenstunden (letzte 8 Wochen)</h2><div class="chart">${chart(wk,S.set.weekly)}</div></div>`;
 }
 function isoWeek(d){const x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())),n=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-n);return Math.ceil(((x-Date.UTC(x.getUTCFullYear(),0,1))/864e5+1)/7)}
-function bindStat(){document.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{range=b.dataset.r;render()})}
+function bindStat(){document.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{range=b.dataset.r;statO=0;render()});
+ $("#sp").onclick=()=>{statO--;render()};$("#sn").onclick=()=>{if(statO<0){statO++;render()}}}
 
 function set(){const c=S.set;return `<h1>Einstellungen</h1><p class="sub">Vertrag & Darstellung</p>
  <div class="card"><h2>Vertrag</h2>
@@ -229,7 +244,7 @@ function set(){const c=S.set;return `<h1>Einstellungen</h1><p class="sub">Vertra
  ${(c.rules||[]).map((x,i)=>`<div class="rule"><div><label>Von</label><input type="time" class="rf" value="${x.from}"></div><div><label>Bis</label><input type="time" class="rt" value="${x.to}"></div><div><label>Zuschlag %</label><input type="number" class="rp" min="0" inputmode="numeric" value="${x.pct}"></div><button class="ib" data-rm="${i}" title="Entfernen" style="height:46px">🗑</button></div>`).join("")}
  <button class="btn sec" id="ar" style="width:100%;margin-bottom:14px">+ Zuschlag hinzufügen</button>${c.rate?"":'<p class="mu" style="margin-top:0">Hinweis: Zuschläge wirken erst, wenn oben ein Stundenlohn eingetragen ist.</p>'}</details>
  <button class="btn" id="sv">Speichern</button></div>
- <div class="card"><h2>Darstellung</h2><button class="btn sec" id="th" style="width:100%">${dark()?"☀️ Hell":"🌙 Dunkel"} umschalten</button></div>
+ <div class="card"><h2>Darstellung</h2><div class="tg"><span>${dark()?"🌙 Dunkelmodus":"☀️ Hellmodus"}</span><label for="switch" class="switch"><input id="switch" type="checkbox" ${dark()?"":"checked"} /><span class="slider"></span><span class="decoration"></span></label></div></div>
  <div class="card"><h2>Daten</h2><p class="mu">Alles bleibt lokal in deinem Browser (LocalStorage).</p>
  <button class="btn sec" id="ex" style="width:100%;margin-bottom:8px">Backup exportieren (JSON)</button>
  <button class="btn sec" id="im" style="width:100%;margin-bottom:8px">Backup importieren</button>
@@ -241,7 +256,7 @@ function bindSet(){
  $("#adv").ontoggle=e=>advOpen=e.target.open;
  $("#ar").onclick=()=>{S.set.rules=readRules();S.set.rules.push({from:"20:00",to:"21:00",pct:25});advOpen=true;render()};
  document.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{const r=readRules();r.splice(+b.dataset.rm,1);S.set.rules=r;advOpen=true;save();render()});
- $("#th").onclick=()=>{S.set.theme=dark()?"light":"dark";save();render()};
+ $("#switch").onchange=e=>{S.set.theme=e.target.checked?"light":"dark";save();render()};
  $("#ex").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:"application/json"}));a.download="zeiterfassung-backup.json";a.click()};
  $("#im").onclick=()=>$("#fi").click();
  $("#fi").onchange=async e=>{try{const r=JSON.parse(await e.target.files[0].text());if(!r.entries)throw 0;S.entries=r.entries;S.vac=r.vac||{};Object.assign(S.set,r.set||{});save();toast("Importiert ✓");render()}catch(x){alert("Ungültige Datei.")}};
