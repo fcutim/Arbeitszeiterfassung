@@ -60,6 +60,9 @@ details.ms{margin:0;padding:0 12px;background:var(--bg);border-radius:12px}detai
 .kp button{width:68px;height:68px;border-radius:50%;border:0;background:var(--card);color:var(--tx);font:inherit;font-size:24px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.14);display:flex;align-items:center;justify-content:center}
 .kp button:active{transform:scale(.92);background:var(--ac);color:#fff}
 .le{min-height:22px;margin-top:18px;color:var(--neg);font-size:14px}.lc{margin-top:6px;background:none;border:0;color:var(--mu);font:inherit;font-size:15px;cursor:pointer;padding:10px}
+.fold>h2{cursor:pointer;margin:0;display:flex;justify-content:space-between;align-items:center}.fold>h2::after{content:"▾";color:var(--mu);transition:transform .2s}.fold.open>h2{margin-bottom:12px}.fold.open>h2::after{transform:rotate(180deg)}.fold:not(.open)>*:not(h2){display:none}
+.mg{margin-top:0}.mg summary{padding:0;gap:10px}.mg summary>span:first-child{flex:1;text-transform:capitalize}.mg[open] summary{margin-bottom:6px}
+.hmw{overflow-x:auto}.hm{display:inline-grid;grid-template-rows:repeat(7,12px);grid-auto-flow:column;grid-auto-columns:12px;gap:3px}.hm i{display:block;border-radius:3px;background:var(--bg);border:1px solid var(--bd)}
 .chips{display:flex;gap:8px;margin-bottom:14px}.chips button{flex:1;min-width:0;border:1px solid var(--bd);background:var(--card);color:var(--mu);border-radius:14px;padding:8px 2px;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;line-height:1.25}.chips button.on{background:var(--ac);color:#fff;border-color:var(--ac)}.chips small{font-size:10px}.chips b{font-size:17px;color:inherit}.chips i{font-style:normal;font-size:10px;height:12px}
 .tg{display:flex;align-items:center;justify-content:space-between}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:4px}
@@ -97,6 +100,8 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 let S={entries:{},vac:{},notes:{},set:{weekly:40,days:5,rate:0,theme:"",rules:[]}},tab="home",range="week",advOpen=false,calM=new Date(new Date().getFullYear(),new Date().getMonth(),1);
 try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r){S.entries=r.entries||{};S.vac=r.vac||{};S.notes=r.notes||{};Object.assign(S.set,r.set||{})}}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const autoPause=(a,b)=>(S.set.autoPause&&tm(b)-tm(a)>360)?30:0;
+const BS=String.fromCharCode(92);
 const dep=id=>(S.set.depts||[]).find(x=>x.id===id);
 const deptTag=e=>{const d=S.set.deptOn&&dep(e.dept);return d?`<br><span class="pill" style="background:${d.color}">${esc(d.name||"Schicht")}</span>`:""};
 const dst=e=>{const d=e&&S.set.deptOn&&dep(e.dept);return d?`style="background:color-mix(in srgb,${d.color} 38%,var(--card));border-color:${d.color}"`:""};
@@ -105,7 +110,7 @@ const pd=s=>{const[a,b,c]=s.split("-").map(Number);return new Date(a,b-1,c)};
 const tm=t=>{const[h,m]=t.split(":").map(Number);return h*60+m};
 const net=e=>Math.max(0,(tm(e.end)-tm(e.start)-(+e.pause||0))/60);
 const f1=n=>n.toLocaleString("de-DE",{minimumFractionDigits:1,maximumFractionDigits:2});
-const eur=n=>n.toLocaleString("de-DE",{style:"currency",currency:"EUR"});
+let RV=0;const eur=n=>S.set.hideAmt&&!RV?"••• €":n.toLocaleString("de-DE",{style:"currency",currency:"EUR"});
 const monday=d=>{const x=new Date(d);x.setDate(x.getDate()-((x.getDay()+6)%7));x.setHours(0,0,0,0);return x};
 const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 const sum=(a,b)=>{let t=0;for(let d=new Date(a);d<=b;d=addD(d,1)){const e=S.entries[ymd(d)];if(e)t+=net(e)}return t};
@@ -167,7 +172,7 @@ function bindHome(){
 */
 let homeD=0;
 function home(){
- const t=today(),k=ymd(addD(t,homeD)),has=S.entries[k],e=has||{start:"08:00",end:"16:30",pause:30},tk=ymd(t);
+ const t=today(),k=ymd(addD(t,homeD)),has=S.entries[k],e=has||{start:"08:00",end:"16:30",pause:autoPause("08:00","16:30")},tk=ymd(t);
  const ws=monday(t),wk=sum(ws,addD(ws,6)),p=Math.min(100,wk/S.set.weekly*100||0),tn=S.entries[tk]?net(S.entries[tk]):0;
  const chips=[-1,0,1,2,3].map(o=>{const d=addD(t,o),q=ymd(d);return `<button data-o="${o}" class="${o===homeD?"on":""}"><small>${["Gestern","Heute","Morgen"][o+1]||d.toLocaleDateString("de-DE",{weekday:"short"})}</small><b>${d.getDate()}.</b><i>${S.entries[q]?"●":S.vac[q]?"🏖":hol(q)?"🎉":""}</i></button>`}).join("");
  const ks0=[...Object.keys(S.entries),...Object.keys(S.vac)].sort(),acc=ks0.length?sum(pd(ks0[0]),t)-workdays(pd(ks0[0]),t)*perDay():0,bk=S.set.lastBackup,bd=bk?Math.floor((t-pd(bk))/864e5):null,warn=Object.keys(S.entries).length&&(bd===null||bd>=14);
@@ -190,6 +195,7 @@ function home(){
 function bindHome(){
  const k=ymd(addD(today(),homeD));
  document.querySelectorAll(".chips button").forEach(b=>b.onclick=()=>{homeD=+b.dataset.o;render()});
+ let pt=!!S.entries[k];$("#p").addEventListener("input",()=>pt=true);["s","e"].forEach(i=>$("#"+i).addEventListener("input",()=>{if(S.set.autoPause&&!pt){const a=$("#s").value,b=$("#e").value;if(a&&b&&tm(b)>tm(a))$("#p").value=autoPause(a,b)}}));
  const calc=()=>{const e={start:$("#s").value,end:$("#e").value,pause:$("#p").value};$("#pre").textContent=e.start&&e.end&&tm(e.end)>tm(e.start)?"Netto: "+f1(net(e))+" Std.":""};
  ["s","e","p"].forEach(i=>$("#"+i).oninput=calc);calc();
  $("#done").onclick=()=>{const e={start:$("#s").value,end:$("#e").value,pause:+$("#p").value||0};
@@ -214,6 +220,10 @@ function bindCal(){$("#pm").onclick=()=>{calM=new Date(calM.getFullYear(),calM.g
  if($("#vx"))$("#vx").onclick=()=>{vm=false;vsel={};render()};
  document.querySelectorAll(".day").forEach(b=>b.onclick=()=>{const k=b.dataset.k;if(vm){if(vsel[k])delete vsel[k];else vsel[k]=1;render()}else editor(S.entries[k]?k:null,k)})}
 let hf={from:"",to:"",wd:[],dp:[],min:"",max:"",sort:"new"},hfOpen=false,msO={};
+let mOpen={};
+function monthGroups(ks,fn){const g=[],m={};ks.forEach(k=>{const y=k.slice(0,7);if(!m[y]){m[y]=[];g.push(y)}m[y].push(k)});
+ return g.map(y=>{const l=m[y],h=l.reduce((s,k)=>s+net(S.entries[k]),0),op=y in mOpen?mOpen[y]:y===ymd(today()).slice(0,7);
+  return `<details class="card mg" data-m="${y}" ${op?"open":""}><summary><span>${pd(y+"-01").toLocaleDateString("de-DE",{month:"long",year:"numeric"})}</span><span class="mu">${l.length} Tage · ${f1(h)} Std.</span></summary>${l.map(fn).join("")}</details>`})}
 const msel=(id,lab,opts,sel)=>{const nm=opts.filter(o=>sel.includes(o[0])).map(o=>o[1]);return `<div style="margin-top:10px"><label>${lab}</label><details class="ms" id="${id}" ${msO[id]?"open":""}><summary>${nm.length&&nm.length<opts.length?esc(nm.join(", ")):"Alle"}</summary><div>${opts.map(o=>`<label class="ck"><input type="checkbox" value="${esc(o[0])}" ${sel.includes(o[0])?"checked":""}> ${esc(o[1])}</label>`).join("")}</div></details></div>`};
 function hfPanel(){const on=Object.entries(hf).some(([k,v])=>k!=="sort"&&(Array.isArray(v)?v.length:v!==""));
  return `<details id="hfd" ${hfOpen?"open":""} style="margin:0 0 14px;background:var(--card)"><summary>🔎 Filter${on?" · aktiv":""}</summary>
@@ -225,13 +235,13 @@ function hfPanel(){const on=Object.entries(hf).some(([k,v])=>k!=="sort"&&(Array.
 function hist(){
  const ks=Object.keys(S.entries).filter(k=>{const n=net(S.entries[k]),w=(pd(k).getDay()+6)%7;return(!hf.from||k>=hf.from)&&(!hf.to||k<=hf.to)&&(!hf.wd.length||hf.wd.includes(String(w)))&&(!S.set.deptOn||!hf.dp.length||hf.dp.includes(dep(S.entries[k].dept)?S.entries[k].dept:"none"))&&(hf.min===""||n>=+hf.min)&&(hf.max===""||n<=+hf.max)}).sort();
  if(hf.sort==="new")ks.reverse();else if(hf.sort==="hrs")ks.sort((a,b)=>net(S.entries[b])-net(S.entries[a]));
- return `<h1>Historie</h1><p class="sub">${ks.length} von ${Object.keys(S.entries).length} Tagen · ${f1(ks.reduce((s,k)=>s+net(S.entries[k]),0))} Std.</p>${hfPanel()}<div class="card">`+
- (ks.length?ks.map(k=>{const e=S.entries[k];return `<div class="row"><div><b>${dl(k)}</b><span class="mu">${e.start}–${e.end} · ${e.pause} Min Pause${S.notes[k]?" · 📝 "+esc(S.notes[k]):""}</span></div>
- <div style="text-align:right"><b>${f1(net(e))} h</b>${deptTag(e)}</div><div style="display:flex;gap:6px"><button class="ib" data-e="${k}" title="Bearbeiten">✏️</button><button class="ib" data-d="${k}" title="Löschen">🗑</button></div></div>`}).join(""):'<p class="mu">Noch keine Einträge. Schließe auf der Startseite deinen ersten Arbeitstag ab.</p>')+"</div>"+
+ return `<h1>Historie</h1><p class="sub">${ks.length} von ${Object.keys(S.entries).length} Tagen · ${f1(ks.reduce((s,k)=>s+net(S.entries[k]),0))} Std.</p>${hfPanel()}`+
+ (ks.length?monthGroups(ks,k=>{const e=S.entries[k];return `<div class="row"><div><b>${dl(k)}</b><span class="mu">${e.start}–${e.end} · ${e.pause} Min Pause${S.notes[k]?" · 📝 "+esc(S.notes[k]):""}</span></div>
+ <div style="text-align:right"><b>${f1(net(e))} h</b>${deptTag(e)}</div><div style="display:flex;gap:6px"><button class="ib" data-e="${k}" title="Bearbeiten">✏️</button><button class="ib" data-d="${k}" title="Löschen">🗑</button></div></div>`}).join(""):'<div class="card"><p class="mu">Noch keine Einträge. Schließe auf der Startseite deinen ersten Arbeitstag ab.</p></div>')+
  '<div class="card"><h2>Eintrag für anderes Datum</h2><button class="btn sec" id="add" style="width:100%">+ Nachtragen</button></div>';
 }
 function editor(k,pre){
- const n=!k&&!pre,e=S.entries[k]||{start:"08:00",end:"16:30",pause:30},d=$("#dlg");
+ const n=!k&&!pre,e=S.entries[k]||{start:"08:00",end:"16:30",pause:autoPause("08:00","16:30")},d=$("#dlg");
  d.innerHTML=`<h2>${n?"Eintrag nachtragen":"Eintrag bearbeiten"}</h2>
  <label>Datum</label><input type="date" id="ed" value="${k||pre||ymd(today())}" ${n?"":"disabled"} style="margin-bottom:10px">
  ${(S.set.shifts||[]).length?`<label>Vorlage</label><select id="esh" style="margin-bottom:10px"><option value="">– Schicht wählen –</option>${S.set.shifts.map((x,i)=>`<option value="${i}">${esc(x.name||"Schicht")} (${x.start}–${x.end})</option>`).join("")}</select>`:""}${S.set.deptOn?`<label>Abteilung / Schicht</label><select id="edp" style="margin-bottom:10px"><option value="">– keine –</option>${(S.set.depts||[]).map(x=>`<option value="${x.id}" ${e.dept===x.id?"selected":""}>${esc(x.name||"Ohne Namen")}</option>`).join("")}</select>`:""}<div class="grid"><div><label>Start</label><input type="time" id="es" value="${e.start}"></div><div><label>Ende</label><input type="time" id="ee" value="${e.end}"></div><div><label>Pause</label><input type="number" id="ep" min="0" value="${e.pause}"></div></div>
@@ -239,6 +249,7 @@ function editor(k,pre){
  d.showModal();$("#no").onclick=()=>d.close();d.onclose=()=>render();
  const kk=k||pre,shownote=()=>{const r=$("#nrow");r.innerHTML='<div style="min-width:0"><label>Notiz</label><span id="nt"></span></div><button class="ib" id="ne">✏️</button>';$("#nt").textContent=S.notes[kk]||"-";$("#ne").onclick=editnote},editnote=()=>{const r=$("#nrow");r.innerHTML='<input id="ni" maxlength="120" placeholder="Notiz …" style="margin-right:8px"><button class="ib" id="nk">✓</button>';$("#ni").value=S.notes[kk]||"";$("#ni").focus();$("#nk").onclick=()=>{const v=$("#ni").value.trim();if(v)S.notes[kk]=v;else delete S.notes[kk];save();shownote()}};
  if(kk)shownote();
+ let pt=!!S.entries[k];$("#ep").addEventListener("input",()=>pt=true);["es","ee"].forEach(i=>$("#"+i).addEventListener("input",()=>{if(S.set.autoPause&&!pt){const a=$("#es").value,b=$("#ee").value;if(a&&b&&tm(b)>tm(a))$("#ep").value=autoPause(a,b)}}));
  if($("#esh"))$("#esh").onchange=ev=>{const x=(S.set.shifts||[])[ev.target.value];if(x){$("#es").value=x.start;$("#ee").value=x.end;$("#ep").value=x.pause}};
  
  if($("#dx"))$("#dx").onclick=function(){ask(this,"Nochmal tippen zum Löschen",()=>{delete S.entries[k];save();d.close();render()})};
@@ -249,6 +260,7 @@ function editor(k,pre){
 function bindHist(){
  document.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>editor(b.dataset.e));
  document.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>ask(b,"OK?",()=>{delete S.entries[b.dataset.d];save();render()}));
+ document.querySelectorAll(".mg").forEach(d=>d.ontoggle=()=>{mOpen[d.dataset.m]=d.open});
  $("#hfd").ontoggle=e=>hfOpen=e.target.open;
  [["f1","from"],["f2","to"],["f4","min"],["f5","max"],["f6","sort"]].forEach(([i,k])=>$("#"+i).onchange=e=>{hf[k]=e.target.value;hfOpen=true;render()});
  $("#fr").onclick=()=>{hf={from:"",to:"",wd:[],dp:[],min:"",max:"",sort:"new"};hfOpen=true;render()};
@@ -265,6 +277,11 @@ function chart(items,soll){
   s+=`<rect x="${x}" y="${y(it.v)}" width="${bw}" height="${Math.max(0,H-pb-y(it.v))}" rx="5" fill="${it.v>=soll?"var(--ac2)":"var(--ac)"}" opacity="${it.v?1:.25}"><title>${it.t}: ${f1(it.v)} h</title></rect><text x="${x+bw/2}" y="${H-8}" text-anchor="middle">${it.l}</text>`});
  return s+"</svg>";
 }
+function heat(y){const off=(new Date(y,0,1).getDay()+6)%7,n=(y%4===0&&(y%100!==0||y%400===0))?366:365;let c="";for(let i=0;i<off;i++)c+="<i style=\"visibility:hidden\"></i>";
+ for(let i=0;i<n;i++){const d=new Date(y,0,1+i),k=ymd(d),e=S.entries[k],h=e?net(e):0,r=h/perDay(),lv=!e?0:r<.6?1:r<1?2:r<1.2?3:4;
+  const bg=S.vac[k]?"#f5a524":lv?`color-mix(in srgb,var(--ac) ${[0,30,55,80,100][lv]}%,var(--card))`:hol(k)?"color-mix(in srgb,var(--mu) 35%,var(--bg))":"";
+  c+=`<i title="${dl(k)}: ${h?f1(h)+" h":S.vac[k]?"Urlaub":hol(k)||"–"}" ${bg?`style="background:${bg}"`:""}></i>`}
+ return `<div class="hm">${c}</div>`}
 let statO=0;
 function stat(){
  const t=today(),R=range,o=statO,isW=R==="week";let a,b,lab;
@@ -282,10 +299,12 @@ function stat(){
  <div class="card"><div class="mu">Überstunden</div><div class="big ${ot>=0?"pos":"neg"}">${ot>=0?"+":""}${f1(ot)} h</div></div>
  <div class="card"><div class="mu">${r?"Verdienst":"Soll gesamt"}</div><div class="big">${r?eur(pay.t):f1(sollFull)+" h"}</div>${r&&pay.s?`<div class="mu">davon Zuschläge ${eur(pay.s)}</div>`:""}</div></div>
  <div class="card"><h2>${R==="year"?"Stunden pro Monat":"Tägliche Stunden"}</h2><div class="chart">${chart(days,R==="year"?sollFull/12:pdv)}</div><p class="mu" style="margin:6px 0 0">Gestrichelt: ${R==="year"?"Ø Monats-Soll":"Tages-Soll"} (${f1(R==="year"?sollFull/12:pdv)} h)</p></div>
- <div class="card"><h2>Wochenstunden (letzte 8 Wochen)</h2><div class="chart">${chart(wk,S.set.weekly)}</div></div>`;
+ <div class="card"><h2>Wochenstunden (letzte 8 Wochen)</h2><div class="chart">${chart(wk,S.set.weekly)}</div></div>
+ <div class="card"><h2>Heatmap ${a.getFullYear()}</h2><div class="hmw">${heat(a.getFullYear())}</div><p class="mu" style="margin:8px 0 0">Je kräftiger die Farbe, desto mehr Stunden · orange = Urlaub · grau = Feiertag</p></div>`;
 }
 function isoWeek(d){const x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())),n=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-n);return Math.ceil(((x-Date.UTC(x.getUTCFullYear(),0,1))/864e5+1)/7)}
 function bindStat(){document.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{range=b.dataset.r;statO=0;render()});
+ const hw=$(".hmw");if(hw&&statO===0)hw.scrollLeft=hw.scrollWidth*(new Date().getMonth()/12)-40;
  $("#sp").onclick=()=>{statO--;render()};$("#sn").onclick=()=>{if(statO<0){statO++;render()}}}
 
 function set(){const c=S.set;return `<h1>Einstellungen</h1><p class="sub">Vertrag & Darstellung</p>
@@ -294,6 +313,7 @@ function set(){const c=S.set;return `<h1>Einstellungen</h1><p class="sub">Vertra
  <label>Arbeitstage pro Woche</label><input type="number" id="d" min="1" max="7" value="${c.days}" style="margin-bottom:12px">
  <label>Stundenlohn in € (optional)</label><input type="number" id="r" step="0.01" min="0" value="${c.rate||""}" placeholder="z. B. 18,50">
  <label style="margin-top:12px">Feiertage (Niedersachsen) vom Soll abziehen</label><select id="hl"><option value="1" ${c.hol===false?"":"selected"}>Ja</option><option value="0" ${c.hol===false?"selected":""}>Nein</option></select>
+ <label style="margin-top:12px">Pause automatisch eintragen (ab 6 Std. Arbeitszeit 30 Min)</label><select id="ap"><option value="0">Aus</option><option value="1" ${c.autoPause?"selected":""}>An</option></select>
  <details id="adv" ${advOpen?"open":""}><summary>Erweiterte Einstellungen</summary>
  <p class="mu" style="margin-top:0"><b>Zuschläge nach Uhrzeit</b> – z. B. 20–21 Uhr +25 %, ab 21 Uhr +50 %. Gilt auf den Stundenlohn (Ende 00:00 = Mitternacht). Die Pause wird als außerhalb der Zuschlagszeiten angenommen.</p>
  ${(c.rules||[]).map((x,i)=>`<div class="rule"><div><label>Von</label><input type="time" class="rf" value="${x.from}"></div><div><label>Bis</label><input type="time" class="rt" value="${x.to}"></div><div><label>Zuschlag %</label><input type="number" class="rp" min="0" inputmode="numeric" value="${x.pct}"></div><button class="ib" data-rm="${i}" title="Entfernen" style="height:46px">🗑</button></div>`).join("")}
@@ -308,10 +328,11 @@ function set(){const c=S.set;return `<h1>Einstellungen</h1><p class="sub">Vertra
  ${(S.set.shifts||[]).length?(S.set.shifts).map((x,i)=>`<div style="border:1px solid var(--bd);border-radius:14px;padding:12px;margin-bottom:10px"><label>Name</label><input class="sn sh" value="${esc(x.name)}" placeholder="z. B. Spätschicht" style="margin-bottom:8px"><div class="rule" style="margin:0"><div><label>Von</label><input type="time" class="ss sh" value="${x.start}"></div><div><label>Bis</label><input type="time" class="se sh" value="${x.end}"></div><div><label>Pause</label><input type="number" class="sp sh" min="0" value="${x.pause}"></div><button class="ib" data-sd="${i}" style="height:46px">🗑</button></div></div>`).join(""):'<p class="mu">Noch keine Vorlagen.</p>'}
  <button class="btn sec" id="sa" style="width:100%">+ Vorlage hinzufügen</button></div>
  <div class="card"><h2>🖨 Bericht & Export</h2><div class="grid2"><div><label>Zeitraum</label><select id="rp"><option value="m">Monat</option><option value="y">Ganzes Jahr</option></select></div><div><label>Monat / Jahr</label><input type="month" id="rm" value="${ymd(today()).slice(0,7)}"></div></div>
- <button class="btn sec" id="pr" style="width:100%;margin-top:12px">Drucken / als PDF speichern</button><button class="btn sec" id="csv" style="width:100%;margin-top:8px">Als CSV exportieren (Excel)</button></div>
+ <button class="btn sec" id="pdf" style="width:100%;margin-top:12px">📄 Als PDF herunterladen</button><button class="btn sec" id="pr" style="width:100%;margin-top:8px">🖨 Drucken</button><button class="btn sec" id="csv" style="width:100%;margin-top:8px">Als CSV exportieren (Excel)</button><button class="btn sec" id="ics" style="width:100%;margin-top:8px">📅 Kalender-Export (.ics)</button></div>
  <div class="card"><h2>🔒 Sicherheit</h2>
  <div class="tg" style="margin-bottom:12px"><span>PIN-Sperre</span><select id="pnon" style="width:auto"><option value="0">Aus</option><option value="1" ${getPin()?"selected":""}>An</option></select></div>
  ${getPin()?`<div class="tg" style="margin-bottom:12px"><span>Face ID / Touch ID</span><select id="fcon" style="width:auto"><option value="0">Aus</option><option value="1" ${getPin().cred?"selected":""}>An</option></select></div><button class="btn sec" id="pnch" style="width:100%">PIN ändern</button>`:'<p class="mu" style="margin:0">Schützt die App beim Öffnen mit einem 4-stelligen Code.</p>'}
+ <div class="tg" style="margin:12px 0 0"><span>Beträge ausblenden</span><select id="hdon" style="width:auto"><option value="0">Aus</option><option value="1" ${S.set.hideAmt?"selected":""}>An</option></select></div>
  <p class="mu" style="margin:12px 0 0">Hinweis: Die Sperre hält neugierige Blicke ab, verschlüsselt die Daten aber nicht. Wer die PIN vergisst, kommt nur durch Löschen der Browserdaten wieder rein – mach vorher ein Backup.</p></div>
  <div class="card"><h2>Daten</h2><p class="mu">Alles bleibt lokal in deinem Browser (LocalStorage).</p>
  <button class="btn sec" id="ex" style="width:100%;margin-bottom:8px">Backup exportieren (JSON)</button>
@@ -320,17 +341,42 @@ function set(){const c=S.set;return `<h1>Einstellungen</h1><p class="sub">Vertra
 function repData(){const v=$("#rm").value||ymd(today()).slice(0,7),y=+v.slice(0,4),m=+v.slice(5,7)-1,yr=$("#rp").value==="y",a=yr?new Date(y,0,1):new Date(y,m,1),b=yr?new Date(y,11,31):new Date(y,m+1,0),rows=[];
  for(let d=new Date(a);d<=b;d=addD(d,1)){const k=ymd(d);if(S.entries[k]||S.vac[k])rows.push({k,e:S.entries[k],v:S.vac[k]})}
  return{a,b,rows,lab:yr?String(y):a.toLocaleDateString("de-DE",{month:"long",year:"numeric"})}}
-function printRep(){const{a,b,rows,lab}=repData(),t=today(),ist=sum(a,b),soll=workdays(a,t<b?t:b)*perDay(),r=+S.set.rate||0,pay=sumPay(a,b),pp=e=>{const q=payOf(e);return eur(q.b+q.s)};
+function printRep(){RV=1;try{printRep0()}finally{RV=0}}
+function printRep0(){const{a,b,rows,lab}=repData(),t=today(),ist=sum(a,b),soll=workdays(a,t<b?t:b)*perDay(),r=+S.set.rate||0,pay=sumPay(a,b),pp=e=>{const q=payOf(e);return eur(q.b+q.s)};
  $("#prt").innerHTML=`<h1>Arbeitszeitbericht ${lab}</h1><table><thead><tr><th>Datum</th><th>Start</th><th>Ende</th><th>Pause</th><th>Netto</th>${r?"<th>Verdienst</th>":""}</tr></thead><tbody>${rows.map(x=>x.e?`<tr><td>${dl(x.k)}</td><td>${x.e.start}</td><td>${x.e.end}</td><td>${x.e.pause} Min</td><td>${f1(net(x.e))} h</td>${r?`<td>${pp(x.e)}</td>`:""}</tr>`:`<tr><td>${dl(x.k)}</td><td colspan="${r?5:4}">Urlaub</td></tr>`).join("")}</tbody></table><p><b>Ist:</b> ${f1(ist)} h · <b>Soll:</b> ${f1(soll)} h · <b>Differenz:</b> ${f1(ist-soll)} h${r?` · <b>Verdienst:</b> ${eur(pay.t)}`:""}</p>`;
  window.print()}
+function pdfDoc(title,head,rows,foot){
+ const X=[40,150,200,250,310,380,480],EU=String.fromCharCode(128),q=s=>[...String(s)].map(c=>{const n=c.charCodeAt(0);return c==="€"?EU:n<32||n>255?"?":(c==="("||c===")"||c===BS)?BS+c:c}).join("");
+ const pages=[];let c="",y=800;const T=(x,yy,s,f,sz)=>`BT /${f} ${sz} Tf 1 0 0 1 ${x} ${yy} Tm (${q(s)}) Tj ET\n`;
+ const brk=()=>{if(y<60){pages.push(c);c="";y=800}};
+ const row=(r,f)=>{brk();r.forEach((s,i)=>c+=T(X[i],y,s,f,10));y-=16};
+ c+=T(40,y,title,"F2",16);y-=30;row(head,"F2");rows.forEach(r=>row(r,"F1"));y-=10;foot.forEach(s=>{brk();c+=T(40,y,s,"F1",11);y-=18});pages.push(c);
+ const o=["<</Type/Catalog/Pages 2 0 R>>",`<</Type/Pages/Kids[${pages.map((_,i)=>(5+2*i)+" 0 R").join(" ")}]/Count ${pages.length}>>`,"<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>","<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold/Encoding/WinAnsiEncoding>>"];
+ pages.forEach((p,i)=>{o.push(`<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]/Resources<</Font<</F1 3 0 R/F2 4 0 R>>>>/Contents ${6+2*i} 0 R>>`);o.push(`<</Length ${p.length}>>stream\n${p}\nendstream`)});
+ let out="%PDF-1.4\n";const off=[];o.forEach((s,i)=>{off.push(out.length);out+=`${i+1} 0 obj\n${s}\nendobj\n`});
+ const xr=out.length;out+=`xref\n0 ${o.length+1}\n0000000000 65535 f \n`+off.map(n=>String(n).padStart(10,"0")+" 00000 n \n").join("")+`trailer\n<</Size ${o.length+1}/Root 1 0 R>>\nstartxref\n${xr}\n%%EOF`;
+ return new Blob([new Uint8Array([...out].map(ch=>ch.charCodeAt(0)&255))],{type:"application/pdf"})}
+function pdfRep(){RV=1;try{const{a,b,rows,lab}=repData(),t=today(),ist=sum(a,b),soll=workdays(a,t<b?t:b)*perDay(),r=+S.set.rate||0,pay=sumPay(a,b),dp=S.set.deptOn;
+ const head=["Datum","Start","Ende","Pause","Netto"].concat(dp?["Abteilung"]:[],r?["Verdienst"]:[]);
+ const data=rows.map(x=>{if(!x.e)return[dl(x.k),"Urlaub"];const p=payOf(x.e),d=dep(x.e.dept);return[dl(x.k),x.e.start,x.e.end,x.e.pause+" Min",f1(net(x.e))+" h"].concat(dp?[d?d.name:"-"]:[],r?[eur(p.b+p.s)]:[])});
+ const foot=["Ist: "+f1(ist)+" h   Soll: "+f1(soll)+" h   Differenz: "+f1(ist-soll)+" h"].concat(r?["Verdienst: "+eur(pay.t)]:[]);
+ const a2=document.createElement("a");a2.href=URL.createObjectURL(pdfDoc("Arbeitszeitbericht "+lab,head,data,foot));a2.download="arbeitszeitbericht-"+lab.split(" ").join("-")+".pdf";a2.click()}finally{RV=0}}
+function icsRep(){const{rows,lab}=repData(),CR=String.fromCharCode(13,10),ds=k=>k.split("-").join(""),tt=t=>t.split(":").join("")+"00",ic=s=>String(s).split(",").join(BS+",").split(";").join(BS+";"),st=new Date().toISOString().split("-").join("").split(":").join("").split(".")[0]+"Z",L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Zeiterfassung//DE","CALSCALE:GREGORIAN"];
+ rows.forEach(x=>{const e=x.e;L.push("BEGIN:VEVENT","UID:"+x.k+"@zeiterfassung","DTSTAMP:"+st);
+  if(e){const d=dep(e.dept);L.push("DTSTART:"+ds(x.k)+"T"+tt(e.start),"DTEND:"+ds(x.k)+"T"+tt(e.end),"SUMMARY:"+ic("Arbeit"+(S.set.deptOn&&d?" – "+d.name:"")),"DESCRIPTION:"+ic("Pause "+e.pause+" Min"+(S.notes[x.k]?" | "+S.notes[x.k]:"")))}
+  else L.push("DTSTART;VALUE=DATE:"+ds(x.k),"DTEND;VALUE=DATE:"+ds(ymd(addD(pd(x.k),1))),"SUMMARY:Urlaub");
+  L.push("END:VEVENT")});L.push("END:VCALENDAR");
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([L.join(CR)],{type:"text/calendar;charset=utf-8"}));a.download="arbeitszeit-"+lab.split(" ").join("-")+".ics";a.click()}
 function csvRep(){const{rows,lab}=repData(),L=["Datum;Start;Ende;Pause (Min);Netto (Std.);Status"];
  rows.forEach(x=>L.push(x.e?[x.k,x.e.start,x.e.end,x.e.pause,net(x.e).toFixed(2).replace(".",","),"Arbeit"].join(";"):[x.k,"","","","","Urlaub"].join(";")));
  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+L.join("\n")],{type:"text/csv;charset=utf-8"}));a.download="arbeitszeit-"+lab.replace(/\s/g,"-")+".csv";a.click()}
 function readShifts(){const q=c=>[...document.querySelectorAll(c)],n=q(".sn"),s=q(".ss"),e=q(".se"),p=q(".sp");return n.map((x,i)=>({name:x.value.trim(),start:s[i].value||"08:00",end:e[i].value||"16:00",pause:+p[i].value||0}))}
 function readRules(){const f=[...document.querySelectorAll(".rf")],t=[...document.querySelectorAll(".rt")],p=[...document.querySelectorAll(".rp")];return f.map((x,i)=>({from:x.value||"00:00",to:t[i].value||"00:00",pct:+p[i].value||0}))}
+let fo={};
 function bindSet(){
+ document.querySelectorAll("#view>.card").forEach(c=>{const h=c.querySelector(":scope>h2");if(!h)return;const id=h.textContent;c.classList.add("fold");if(fo[id])c.classList.add("open");h.onclick=()=>{c.classList.toggle("open");fo[id]=c.classList.contains("open")}});
  $("#sv").onclick=()=>{const w=+$("#w").value,d=Math.round(+$("#d").value);if(!(w>0)||!(d>=1&&d<=7))return alert("Bitte gültige Werte eingeben.");
-  S.set.weekly=w;S.set.days=d;S.set.rate=+$("#r").value||0;S.set.rules=readRules();S.set.hol=$("#hl").value==="1";save();toast("Gespeichert ✓");render()};
+  S.set.weekly=w;S.set.days=d;S.set.rate=+$("#r").value||0;S.set.rules=readRules();S.set.hol=$("#hl").value==="1";S.set.autoPause=$("#ap").value==="1";save();toast("Gespeichert ✓");render()};
  $("#adv").ontoggle=e=>advOpen=e.target.open;
  $("#ar").onclick=()=>{S.set.rules=readRules();S.set.rules.push({from:"20:00",to:"21:00",pct:25});advOpen=true;render()};
  document.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{const r=readRules();r.splice(+b.dataset.rm,1);S.set.rules=r;advOpen=true;save();render()});
@@ -348,6 +394,8 @@ function bindSet(){
  $("#pnon").onchange=async e=>{if(e.target.value==="1")await pinSetup();else await pinOff();render()};
  if($("#fcon"))$("#fcon").onchange=async e=>{if(e.target.value==="1")await faceSetup();else{const p=getPin();p.cred="";setPin(p)}render()};
  if($("#pnch"))$("#pnch").onclick=async()=>{await pinSetup();render()};
+ $("#pdf").onclick=pdfRep;$("#ics").onclick=icsRep;
+ $("#hdon").onchange=e=>{S.set.hideAmt=e.target.value==="1";save();render()};
  $("#pr").onclick=printRep;$("#csv").onclick=csvRep;
  $("#ex").onclick=()=>{S.set.lastBackup=ymd(today());save();const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:"application/json"}));a.download="zeiterfassung-backup.json";a.click()};
  $("#im").onclick=()=>$("#fi").click();
