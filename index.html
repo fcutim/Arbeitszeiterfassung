@@ -38,6 +38,11 @@ dialog{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-
 dialog::backdrop{background:rgba(0,0,0,.55)}
 .msg{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ac2);color:#06251a;padding:10px 18px;border-radius:30px;font-weight:600;z-index:9}
 .top{display:flex;justify-content:space-between;align-items:flex-start}
+.calg{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center}.calg>span{font-size:12px;color:var(--mu)}
+.day{aspect-ratio:1;border:1px solid var(--bd);background:var(--bg);color:var(--tx);border-radius:12px;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0}.day small{font-size:10px;min-height:12px}
+.day.w{background:color-mix(in srgb,var(--ac2) 28%,var(--card));border-color:var(--ac2)}.day.v{background:color-mix(in srgb,#f5a524 30%,var(--card));border-color:#f5a524}.day.t{outline:2px solid var(--ac)}
+.cn{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.cn b{font-size:18px;text-transform:capitalize}.tile{margin-bottom:12px}.msg.er{background:var(--neg);color:#fff}
+.chips{display:flex;gap:8px;margin-bottom:14px}.chips button{flex:1;min-width:0;border:1px solid var(--bd);background:var(--card);color:var(--mu);border-radius:14px;padding:8px 2px;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;line-height:1.25}.chips button.on{background:var(--ac);color:#fff;border-color:var(--ac)}.chips small{font-size:10px}.chips b{font-size:17px;color:inherit}.chips i{font-style:normal;font-size:10px;height:12px}
 details{margin-top:16px;border:1px solid var(--bd);border-radius:14px;padding:0 14px}
 summary{cursor:pointer;padding:14px 0;font-weight:600;list-style:none;display:flex;justify-content:space-between}summary::after{content:"▾";color:var(--mu);transition:transform .2s}details[open] summary::after{transform:rotate(180deg)}summary::-webkit-details-marker{display:none}
 .rule{display:grid;grid-template-columns:1fr 1fr 78px 40px;gap:8px;align-items:end;margin-bottom:10px}
@@ -57,8 +62,8 @@ summary{cursor:pointer;padding:14px 0;font-weight:600;list-style:none;display:fl
 <script>
 const $=s=>document.querySelector(s);
 const KEY="zeit_v1";
-let S={entries:{},set:{weekly:40,days:5,rate:0,theme:"",rules:[]}},tab="home",range="week",advOpen=false;
-try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r){S.entries=r.entries||{};Object.assign(S.set,r.set||{})}}catch(e){}
+let S={entries:{},vac:{},set:{weekly:40,days:5,rate:0,theme:"",rules:[]}},tab="home",range="week",advOpen=false,calM=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r){S.entries=r.entries||{};S.vac=r.vac||{};Object.assign(S.set,r.set||{})}}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const ymd=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const pd=s=>{const[a,b,c]=s.split("-").map(Number);return new Date(a,b-1,c)};
@@ -73,33 +78,39 @@ const perDay=()=>S.set.weekly/Math.max(1,S.set.days);
 const ovl=(e,x)=>{const t=tm(x.to)||1440;return Math.max(0,Math.min(tm(e.end),t)-Math.max(tm(e.start),tm(x.from)))};
 const payOf=e=>{const r=+S.set.rate||0;let s=0;(S.set.rules||[]).forEach(x=>{s+=ovl(e,x)/60*r*(+x.pct||0)/100});return{b:net(e)*r,s}};
 const sumPay=(a,b)=>{let t=0,s=0;for(let d=new Date(a);d<=b;d=addD(d,1)){const e=S.entries[ymd(d)];if(e){const p=payOf(e);t+=p.b+p.s;s+=p.s}}return{t,s}};
-const workdays=(a,b)=>{let n=0;for(let d=new Date(a);d<=b;d=addD(d,1))if((d.getDay()+6)%7<S.set.days)n++;return n};
+const workdays=(a,b)=>{let n=0;for(let d=new Date(a);d<=b;d=addD(d,1))if((d.getDay()+6)%7<S.set.days&&!S.vac[ymd(d)])n++;return n};
 const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
 const dl=(s,o)=>pd(s).toLocaleDateString("de-DE",o||{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric"});
-function toast(t){const m=document.createElement("div");m.className="msg";m.textContent=t;document.body.append(m);setTimeout(()=>m.remove(),1800)}
+window.alert=m=>toast(m,1);
+const ask=(b,msg,fn)=>{if(b.dataset.arm){fn();return}b.dataset.arm=1;const o=b.innerHTML;b.textContent=msg;setTimeout(()=>{delete b.dataset.arm;b.innerHTML=o},3500)};
+function toast(t,er){const m=document.createElement("div");m.className="msg"+(er?" er":"");m.textContent=t;document.body.append(m);setTimeout(()=>m.remove(),1800)}
 
 function applyTheme(){const t=S.set.theme;if(t)document.documentElement.dataset.theme=t;else delete document.documentElement.dataset.theme}
 const dark=()=>S.set.theme?S.set.theme==="dark":matchMedia("(prefers-color-scheme:dark)").matches;
 
-const tabs=[["home","🏠","Start"],["hist","📅","Historie"],["stat","📊","Statistik"],["set","⚙️","Einstellungen"]];
+const tabs=[["home","🏠","Start"],["cal","📅","Kalender"],["hist","📋","Historie"],["stat","📊","Statistik"],["set","⚙️","Einstellungen"]];
 function render(){
  applyTheme();
  $("#nav").innerHTML='<div class="brand">⏱ Zeiterfassung</div>'+tabs.map(t=>`<button class="${tab===t[0]?"on":""}" data-t="${t[0]}"><span>${t[1]}</span>${t[2]}</button>`).join("");
  $("#nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;render();scrollTo(0,0)});
- $("#view").innerHTML=({home,hist,stat,set})[tab]();
- ({home:bindHome,hist:bindHist,stat:bindStat,set:bindSet})[tab]();
+ $("#view").innerHTML=({home,cal,hist,stat,set})[tab]();
+ ({home:bindHome,cal:bindCal,hist:bindHist,stat:bindStat,set:bindSet})[tab]();
 }
 
+/* alte Kachelansicht (ersetzt)
+function tile(d,lab){const k=ymd(d),e=S.entries[k],v=S.vac[k];
+ return `<div class="card tile"><div class="top"><div><div class="mu">${lab}</div><b>${dl(k,{weekday:"long",day:"numeric",month:"long"})}</b></div><button class="ib" data-ed="${k}" title="Anpassen">✏️</button></div><div style="margin-top:10px">${e?`<div class="big" style="font-size:24px">${f1(net(e))} h</div><span class="mu">${e.start}–${e.end} · ${e.pause} Min Pause</span>`:v?`<div style="font-size:22px;font-weight:700">🏖 Urlaub</div>`:`<div style="font-size:30px">🌴</div><b>Freier Tag</b> <span class="mu">– genieß den freien Tag!</span>`}</div></div>`}
 function home(){
  const t=today(),k=ymd(t),e=S.entries[k]||{start:"08:00",end:"16:30",pause:30};
  const ws=monday(t),wk=sum(ws,addD(ws,6)),p=Math.min(100,wk/S.set.weekly*100||0),tn=S.entries[k]?net(S.entries[k]):0;
  return `<h1>Heute</h1><p class="sub">${t.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
- <div class="card"><h2>Arbeitszeit eintragen</h2><div class="grid">
+ ${tile(addD(t,-1),"Gestern")}<div class="card"><h2>Heute · Arbeitszeit eintragen</h2>${S.vac[k]?'<p class="mu" style="margin-top:0">🏖 Heute ist als Urlaub markiert – ein Eintrag ersetzt das.</p>':""}<div class="grid">
  <div><label>Start</label><input type="time" id="s" value="${e.start}"></div>
  <div><label>Ende</label><input type="time" id="e" value="${e.end}"></div>
  <div><label>Pause (Min)</label><input type="number" id="p" min="0" inputmode="numeric" value="${e.pause}"></div></div>
  <p class="mu" id="pre" style="margin:12px 0 0"></p>
  <button class="btn" id="done">Arbeitstag abschließen</button></div>
+ ${[1,2,3].map(i=>tile(addD(t,i),["Morgen","Übermorgen","In 3 Tagen"][i-1])).join("")}
  <div class="card"><div class="mu">Netto heute</div><div class="big">${S.entries[k]?f1(tn)+" Std.":"–"}</div></div>
  <div class="card"><div class="mu">Fortschritt Woche</div><div class="big">${f1(wk)} / ${f1(S.set.weekly)} Std.</div><div class="bar"><i style="width:${p}%"></i></div>
  <p class="mu" style="margin:8px 0 0">Diese Woche bisher: ${f1(wk)} / ${f1(S.set.weekly)} Std. (${Math.round(p)} %)</p></div>`;
@@ -107,12 +118,55 @@ function home(){
 function bindHome(){
  const calc=()=>{const e={start:$("#s").value,end:$("#e").value,pause:$("#p").value};$("#pre").textContent=e.start&&e.end&&tm(e.end)>tm(e.start)?"Netto: "+f1(net(e))+" Std.":""};
  ["s","e","p"].forEach(i=>$("#"+i).oninput=calc);calc();
+ document.querySelectorAll("[data-ed]").forEach(b=>b.onclick=()=>editor(S.entries[b.dataset.ed]?b.dataset.ed:null,b.dataset.ed));
  $("#done").onclick=()=>{const e={start:$("#s").value,end:$("#e").value,pause:+$("#p").value||0};
   if(!e.start||!e.end||tm(e.end)<=tm(e.start))return alert("Bitte gültige Start- und Endzeit eingeben (Ende nach Start).");
   if(e.pause>=tm(e.end)-tm(e.start))return alert("Die Pause ist länger als die Arbeitszeit.");
-  S.entries[ymd(today())]=e;save();toast("Arbeitstag gespeichert ✓");render()};
+  S.entries[ymd(today())]=e;delete S.vac[ymd(today())];save();toast("Arbeitstag gespeichert ✓");render()};
 }
 
+*/
+let homeD=0;
+function home(){
+ const t=today(),k=ymd(addD(t,homeD)),has=S.entries[k],e=has||{start:"08:00",end:"16:30",pause:30},tk=ymd(t);
+ const ws=monday(t),wk=sum(ws,addD(ws,6)),p=Math.min(100,wk/S.set.weekly*100||0),tn=S.entries[tk]?net(S.entries[tk]):0;
+ const chips=[-1,0,1,2,3].map(o=>{const d=addD(t,o),q=ymd(d);return `<button data-o="${o}" class="${o===homeD?"on":""}"><small>${["Gestern","Heute","Morgen"][o+1]||d.toLocaleDateString("de-DE",{weekday:"short"})}</small><b>${d.getDate()}.</b><i>${S.entries[q]?"●":S.vac[q]?"🏖":""}</i></button>`}).join("");
+ const hint=S.vac[k]?"🏖 Urlaub – ein Eintrag ersetzt das.":(!has&&homeD!==0?"🌴 Freier Tag – genieß den freien Tag! Du kannst trotzdem Zeiten eintragen.":"");
+ return `<h1>Heute</h1><p class="sub">${t.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
+ <div class="chips">${chips}</div>
+ <div class="card"><h2>${dl(k,{weekday:"long",day:"numeric",month:"long"})} · Arbeitszeit</h2>${hint?`<p class="mu" style="margin-top:0">${hint}</p>`:""}<div class="grid">
+ <div><label>Start</label><input type="time" id="s" value="${e.start}"></div>
+ <div><label>Ende</label><input type="time" id="e" value="${e.end}"></div>
+ <div><label>Pause (Min)</label><input type="number" id="p" min="0" inputmode="numeric" value="${e.pause}"></div></div>
+ <p class="mu" id="pre" style="margin:12px 0 0"></p>
+ <button class="btn" id="done">${homeD===0?"Arbeitstag abschließen":"Eintrag speichern"}</button>
+ <button class="btn sec" id="hv" style="margin-top:8px">${S.vac[k]?"🏖 Urlaub entfernen":"🏖 Als Urlaub markieren"+(has?" (ersetzt Eintrag)":"")}</button>
+ ${has?'<button class="btn sec" id="hx" style="margin-top:8px;color:var(--neg)">Eintrag löschen</button>':""}</div>
+ <div class="card"><div class="mu">Netto heute</div><div class="big">${S.entries[tk]?f1(tn)+" Std.":"–"}</div></div>
+ <div class="card"><div class="mu">Fortschritt Woche</div><div class="big">${f1(wk)} / ${f1(S.set.weekly)} Std.</div><div class="bar"><i style="width:${p}%"></i></div>
+ <p class="mu" style="margin:8px 0 0">Diese Woche bisher: ${f1(wk)} / ${f1(S.set.weekly)} Std. (${Math.round(p)} %)</p></div>`;
+}
+function bindHome(){
+ const k=ymd(addD(today(),homeD));
+ document.querySelectorAll(".chips button").forEach(b=>b.onclick=()=>{homeD=+b.dataset.o;render()});
+ const calc=()=>{const e={start:$("#s").value,end:$("#e").value,pause:$("#p").value};$("#pre").textContent=e.start&&e.end&&tm(e.end)>tm(e.start)?"Netto: "+f1(net(e))+" Std.":""};
+ ["s","e","p"].forEach(i=>$("#"+i).oninput=calc);calc();
+ $("#done").onclick=()=>{const e={start:$("#s").value,end:$("#e").value,pause:+$("#p").value||0};
+  if(!e.start||!e.end||tm(e.end)<=tm(e.start))return alert("Bitte gültige Start- und Endzeit eingeben (Ende nach Start).");
+  if(e.pause>=tm(e.end)-tm(e.start))return alert("Die Pause ist länger als die Arbeitszeit.");
+  S.entries[k]=e;delete S.vac[k];save();toast(homeD===0?"Arbeitstag gespeichert ✓":"Eintrag gespeichert ✓");render()};
+ $("#hv").onclick=()=>{if(S.vac[k])delete S.vac[k];else{delete S.entries[k];S.vac[k]=1}save();render()};
+ if($("#hx"))$("#hx").onclick=function(){ask(this,"Nochmal tippen zum Löschen",()=>{delete S.entries[k];save();render()})};
+}
+function cal(){const y=calM.getFullYear(),mo=calM.getMonth(),off=(new Date(y,mo,1).getDay()+6)%7,n=new Date(y,mo+1,0).getDate(),tk=ymd(today());
+ let c="",wd=0,vd=0;for(let i=0;i<off;i++)c+="<i></i>";
+ for(let d=1;d<=n;d++){const k=ymd(new Date(y,mo,d)),e=S.entries[k],v=S.vac[k];if(e)wd++;if(v)vd++;
+  c+=`<button class="day ${e?"w":""} ${v?"v":""} ${k===tk?"t":""}" data-k="${k}"><b>${d}</b><small>${e?f1(net(e)):v?"🏖":""}</small></button>`}
+ return `<h1>Kalender</h1><p class="sub">Tippe auf einen Tag zum Eintragen oder für Urlaub</p><div class="card"><div class="cn"><button class="ib" id="pm">‹</button><b>${calM.toLocaleDateString("de-DE",{month:"long",year:"numeric"})}</b><button class="ib" id="nm">›</button></div>
+ <div class="calg">${["Mo","Di","Mi","Do","Fr","Sa","So"].map(x=>`<span>${x}</span>`).join("")}${c}</div></div>
+ <div class="stats"><div class="card"><div class="mu">Gearbeitet</div><div class="big">${f1(sum(new Date(y,mo,1),new Date(y,mo,n)))} h</div><div class="mu">${wd} Tage</div></div><div class="card"><div class="mu">Urlaub</div><div class="big">${vd}</div><div class="mu">Tage 🏖</div></div></div>`}
+function bindCal(){$("#pm").onclick=()=>{calM=new Date(calM.getFullYear(),calM.getMonth()-1,1);render()};$("#nm").onclick=()=>{calM=new Date(calM.getFullYear(),calM.getMonth()+1,1);render()};
+ document.querySelectorAll(".day").forEach(b=>b.onclick=()=>editor(S.entries[b.dataset.k]?b.dataset.k:null,b.dataset.k))}
 function hist(){
  const ks=Object.keys(S.entries).sort().reverse();
  return `<h1>Historie</h1><p class="sub">${ks.length} abgeschlossene Arbeitstage</p><div class="card">`+
@@ -120,20 +174,22 @@ function hist(){
  <div style="text-align:right"><b>${f1(net(e))} h</b></div><div style="display:flex;gap:6px"><button class="ib" data-e="${k}" title="Bearbeiten">✏️</button><button class="ib" data-d="${k}" title="Löschen">🗑</button></div></div>`}).join(""):'<p class="mu">Noch keine Einträge. Schließe auf der Startseite deinen ersten Arbeitstag ab.</p>')+"</div>"+
  '<div class="card"><h2>Eintrag für anderes Datum</h2><button class="btn sec" id="add" style="width:100%">+ Nachtragen</button></div>';
 }
-function editor(k){
- const n=!k,e=S.entries[k]||{start:"08:00",end:"16:30",pause:30},d=$("#dlg");
+function editor(k,pre){
+ const n=!k&&!pre,e=S.entries[k]||{start:"08:00",end:"16:30",pause:30},d=$("#dlg");
  d.innerHTML=`<h2>${n?"Eintrag nachtragen":"Eintrag bearbeiten"}</h2>
- <label>Datum</label><input type="date" id="ed" value="${k||ymd(today())}" ${n?"":"disabled"} style="margin-bottom:10px">
+ <label>Datum</label><input type="date" id="ed" value="${k||pre||ymd(today())}" ${n?"":"disabled"} style="margin-bottom:10px">
  <div class="grid"><div><label>Start</label><input type="time" id="es" value="${e.start}"></div><div><label>Ende</label><input type="time" id="ee" value="${e.end}"></div><div><label>Pause</label><input type="number" id="ep" min="0" value="${e.pause}"></div></div>
- <button class="btn" id="ok">Speichern</button><button class="btn sec" id="no" style="margin-top:8px;width:100%">Abbrechen</button>`;
+ <button class="btn" id="ok">Speichern</button>${n?"":`<button class="btn sec" id="vc" style="margin-top:8px;width:100%">${S.vac[k||pre]?"🏖 Urlaub entfernen":"🏖 Als Urlaub markieren"+(k?" (ersetzt Eintrag)":"")}</button>`}${k?'<button class="btn sec" id="dx" style="margin-top:8px;width:100%;color:var(--neg)">Eintrag löschen</button>':""}<button class="btn sec" id="no" style="margin-top:8px;width:100%">Abbrechen</button>`;
  d.showModal();$("#no").onclick=()=>d.close();
+ if($("#vc"))$("#vc").onclick=()=>{const q=k||pre;if(S.vac[q])delete S.vac[q];else{delete S.entries[q];S.vac[q]=1}save();d.close();render()};
+ if($("#dx"))$("#dx").onclick=function(){ask(this,"Nochmal tippen zum Löschen",()=>{delete S.entries[k];save();d.close();render()})};
  $("#ok").onclick=()=>{const v={start:$("#es").value,end:$("#ee").value,pause:+$("#ep").value||0},dt=$("#ed").value;
   if(!dt||!v.start||!v.end||tm(v.end)<=tm(v.start)||v.pause>=tm(v.end)-tm(v.start))return alert("Bitte gültige Werte eingeben.");
-  S.entries[dt]=v;save();d.close();render()};
+  S.entries[dt]=v;delete S.vac[dt];save();d.close();render()};
 }
 function bindHist(){
  document.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>editor(b.dataset.e));
- document.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{if(confirm("Eintrag vom "+dl(b.dataset.d)+" löschen?")){delete S.entries[b.dataset.d];save();render()}});
+ document.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>ask(b,"OK?",()=>{delete S.entries[b.dataset.d];save();render()}));
  $("#add").onclick=()=>editor();
 }
 
@@ -188,8 +244,8 @@ function bindSet(){
  $("#th").onclick=()=>{S.set.theme=dark()?"light":"dark";save();render()};
  $("#ex").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:"application/json"}));a.download="zeiterfassung-backup.json";a.click()};
  $("#im").onclick=()=>$("#fi").click();
- $("#fi").onchange=async e=>{try{const r=JSON.parse(await e.target.files[0].text());if(!r.entries)throw 0;S.entries=r.entries;Object.assign(S.set,r.set||{});save();toast("Importiert ✓");render()}catch(x){alert("Ungültige Datei.")}};
- $("#rs").onclick=()=>{if(confirm("Wirklich ALLE Daten löschen?")){S.entries={};save();render()}};
+ $("#fi").onchange=async e=>{try{const r=JSON.parse(await e.target.files[0].text());if(!r.entries)throw 0;S.entries=r.entries;S.vac=r.vac||{};Object.assign(S.set,r.set||{});save();toast("Importiert ✓");render()}catch(x){alert("Ungültige Datei.")}};
+ $("#rs").onclick=function(){ask(this,"Nochmal tippen: ALLES löschen",()=>{S.entries={};S.vac={};save();render()})};
 }
 render();
 </script>
