@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Zeiterfassung</title>
+<style>
+:root{--bg:#f4f5f9;--card:#fff;--tx:#14161f;--mu:#6b7186;--bd:#e2e5ee;--ac:#5b6cff;--ac2:#3ecf8e;--neg:#ff5d6c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1118;--card:#171b26;--tx:#eef0f7;--mu:#8a91a8;--bd:#262c3b}}
+:root[data-theme="dark"]{--bg:#0e1118;--card:#171b26;--tx:#eef0f7;--mu:#8a91a8;--bd:#262c3b}
+*{box-sizing:border-box}html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{display:flex;min-height:100vh}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
+nav button{flex:1;background:none;border:0;color:var(--mu);padding:8px 2px;font:inherit;font-size:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav button span{font-size:22px}nav button.on{color:var(--ac);font-weight:600}
+.brand{display:none}
+main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:18px 16px 96px}
+h1{font-size:24px;margin:4px 0 2px}h2{font-size:16px;margin:0 0 12px}
+.sub{color:var(--mu);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:18px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+label{display:block;font-size:12px;color:var(--mu);margin-bottom:4px}
+input,select{width:100%;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:12px;padding:12px;font:inherit;min-height:46px}
+input:focus{outline:2px solid var(--ac);border-color:transparent}
+.btn{width:100%;background:var(--ac);color:#fff;border:0;border-radius:14px;padding:15px;font:inherit;font-weight:600;font-size:17px;cursor:pointer;margin-top:14px}
+.btn:active{transform:scale(.98)}.btn.sec{background:var(--bg);color:var(--tx);border:1px solid var(--bd);font-size:15px;padding:11px;margin-top:0}
+.big{font-size:34px;font-weight:700;letter-spacing:-.5px}.mu{color:var(--mu);font-size:14px}
+.bar{height:10px;background:var(--bg);border-radius:9px;overflow:hidden;margin-top:10px}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--ac),var(--ac2));border-radius:9px;transition:width .4s}
+.row{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--bd)}.row:last-child{border:0}
+.row b{display:block}.pos{color:var(--ac2)}.neg{color:var(--neg)}
+.ib{background:none;border:1px solid var(--bd);color:var(--tx);border-radius:10px;width:40px;height:40px;font-size:16px;cursor:pointer}
+.seg{display:flex;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:3px;margin-bottom:14px}
+.seg button{flex:1;border:0;background:none;color:var(--mu);padding:9px;border-radius:9px;font:inherit;cursor:pointer}.seg button.on{background:var(--ac);color:#fff}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}.stats .card{margin:0;padding:14px}.stats .big{font-size:24px}
+.chart{overflow-x:auto}svg text{fill:var(--mu);font-size:11px}
+dialog{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:18px;width:min(92vw,420px);padding:20px}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+.msg{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ac2);color:#06251a;padding:10px 18px;border-radius:30px;font-weight:600;z-index:9}
+.top{display:flex;justify-content:space-between;align-items:flex-start}
+details{margin-top:16px;border:1px solid var(--bd);border-radius:14px;padding:0 14px}
+summary{cursor:pointer;padding:14px 0;font-weight:600;list-style:none;display:flex;justify-content:space-between}summary::after{content:"▾";color:var(--mu);transition:transform .2s}details[open] summary::after{transform:rotate(180deg)}summary::-webkit-details-marker{display:none}
+.rule{display:grid;grid-template-columns:1fr 1fr 78px 40px;gap:8px;align-items:end;margin-bottom:10px}
+.rule input{padding:10px 8px}
+@media(min-width:800px){
+ nav{top:0;bottom:auto;right:auto;width:210px;flex-direction:column;border-top:0;border-right:1px solid var(--bd);padding:20px 12px;gap:4px}
+ nav button{flex:none;flex-direction:row;font-size:15px;gap:12px;padding:12px 14px;border-radius:12px}nav button.on{background:var(--bg)}
+ .brand{display:block;font-weight:700;font-size:18px;padding:0 14px 14px}
+ main{margin-left:210px;max-width:none;padding:32px 40px}main>*{max-width:760px}
+ #app{display:block}
+}
+</style>
+</head>
+<body>
+<div id="app"><nav id="nav"></nav><main id="view"></main></div>
+<dialog id="dlg"></dialog>
+<script>
+const $=s=>document.querySelector(s);
+const KEY="zeit_v1";
+let S={entries:{},set:{weekly:40,days:5,rate:0,theme:"",rules:[]}},tab="home",range="week",advOpen=false;
+try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r){S.entries=r.entries||{};Object.assign(S.set,r.set||{})}}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const ymd=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const pd=s=>{const[a,b,c]=s.split("-").map(Number);return new Date(a,b-1,c)};
+const tm=t=>{const[h,m]=t.split(":").map(Number);return h*60+m};
+const net=e=>Math.max(0,(tm(e.end)-tm(e.start)-(+e.pause||0))/60);
+const f1=n=>n.toLocaleString("de-DE",{minimumFractionDigits:1,maximumFractionDigits:2});
+const eur=n=>n.toLocaleString("de-DE",{style:"currency",currency:"EUR"});
+const monday=d=>{const x=new Date(d);x.setDate(x.getDate()-((x.getDay()+6)%7));x.setHours(0,0,0,0);return x};
+const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const sum=(a,b)=>{let t=0;for(let d=new Date(a);d<=b;d=addD(d,1)){const e=S.entries[ymd(d)];if(e)t+=net(e)}return t};
+const perDay=()=>S.set.weekly/Math.max(1,S.set.days);
+const ovl=(e,x)=>{const t=tm(x.to)||1440;return Math.max(0,Math.min(tm(e.end),t)-Math.max(tm(e.start),tm(x.from)))};
+const payOf=e=>{const r=+S.set.rate||0;let s=0;(S.set.rules||[]).forEach(x=>{s+=ovl(e,x)/60*r*(+x.pct||0)/100});return{b:net(e)*r,s}};
+const sumPay=(a,b)=>{let t=0,s=0;for(let d=new Date(a);d<=b;d=addD(d,1)){const e=S.entries[ymd(d)];if(e){const p=payOf(e);t+=p.b+p.s;s+=p.s}}return{t,s}};
+const workdays=(a,b)=>{let n=0;for(let d=new Date(a);d<=b;d=addD(d,1))if((d.getDay()+6)%7<S.set.days)n++;return n};
+const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const dl=(s,o)=>pd(s).toLocaleDateString("de-DE",o||{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric"});
+function toast(t){const m=document.createElement("div");m.className="msg";m.textContent=t;document.body.append(m);setTimeout(()=>m.remove(),1800)}
+
+function applyTheme(){const t=S.set.theme;if(t)document.documentElement.dataset.theme=t;else delete document.documentElement.dataset.theme}
+const dark=()=>S.set.theme?S.set.theme==="dark":matchMedia("(prefers-color-scheme:dark)").matches;
+
+const tabs=[["home","🏠","Start"],["hist","📅","Historie"],["stat","📊","Statistik"],["set","⚙️","Einstellungen"]];
+function render(){
+ applyTheme();
+ $("#nav").innerHTML='<div class="brand">⏱ Zeiterfassung</div>'+tabs.map(t=>`<button class="${tab===t[0]?"on":""}" data-t="${t[0]}"><span>${t[1]}</span>${t[2]}</button>`).join("");
+ $("#nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;render();scrollTo(0,0)});
+ $("#view").innerHTML=({home,hist,stat,set})[tab]();
+ ({home:bindHome,hist:bindHist,stat:bindStat,set:bindSet})[tab]();
+}
+
+function home(){
+ const t=today(),k=ymd(t),e=S.entries[k]||{start:"08:00",end:"16:30",pause:30};
+ const ws=monday(t),wk=sum(ws,addD(ws,6)),p=Math.min(100,wk/S.set.weekly*100||0),tn=S.entries[k]?net(S.entries[k]):0;
+ return `<h1>Heute</h1><p class="sub">${t.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
+ <div class="card"><h2>Arbeitszeit eintragen</h2><div class="grid">
+ <div><label>Start</label><input type="time" id="s" value="${e.start}"></div>
+ <div><label>Ende</label><input type="time" id="e" value="${e.end}"></div>
+ <div><label>Pause (Min)</label><input type="number" id="p" min="0" inputmode="numeric" value="${e.pause}"></div></div>
+ <p class="mu" id="pre" style="margin:12px 0 0"></p>
+ <button class="btn" id="done">Arbeitstag abschließen</button></div>
+ <div class="card"><div class="mu">Netto heute</div><div class="big">${S.entries[k]?f1(tn)+" Std.":"–"}</div></div>
+ <div class="card"><div class="mu">Fortschritt Woche</div><div class="big">${f1(wk)} / ${f1(S.set.weekly)} Std.</div><div class="bar"><i style="width:${p}%"></i></div>
+ <p class="mu" style="margin:8px 0 0">Diese Woche bisher: ${f1(wk)} / ${f1(S.set.weekly)} Std. (${Math.round(p)} %)</p></div>`;
+}
+function bindHome(){
+ const calc=()=>{const e={start:$("#s").value,end:$("#e").value,pause:$("#p").value};$("#pre").textContent=e.start&&e.end&&tm(e.end)>tm(e.start)?"Netto: "+f1(net(e))+" Std.":""};
+ ["s","e","p"].forEach(i=>$("#"+i).oninput=calc);calc();
+ $("#done").onclick=()=>{const e={start:$("#s").value,end:$("#e").value,pause:+$("#p").value||0};
+  if(!e.start||!e.end||tm(e.end)<=tm(e.start))return alert("Bitte gültige Start- und Endzeit eingeben (Ende nach Start).");
+  if(e.pause>=tm(e.end)-tm(e.start))return alert("Die Pause ist länger als die Arbeitszeit.");
+  S.entries[ymd(today())]=e;save();toast("Arbeitstag gespeichert ✓");render()};
+}
+
+function hist(){
+ const ks=Object.keys(S.entries).sort().reverse();
+ return `<h1>Historie</h1><p class="sub">${ks.length} abgeschlossene Arbeitstage</p><div class="card">`+
+ (ks.length?ks.map(k=>{const e=S.entries[k];return `<div class="row"><div><b>${dl(k)}</b><span class="mu">${e.start}–${e.end} · ${e.pause} Min Pause</span></div>
+ <div style="text-align:right"><b>${f1(net(e))} h</b></div><div style="display:flex;gap:6px"><button class="ib" data-e="${k}" title="Bearbeiten">✏️</button><button class="ib" data-d="${k}" title="Löschen">🗑</button></div></div>`}).join(""):'<p class="mu">Noch keine Einträge. Schließe auf der Startseite deinen ersten Arbeitstag ab.</p>')+"</div>"+
+ '<div class="card"><h2>Eintrag für anderes Datum</h2><button class="btn sec" id="add" style="width:100%">+ Nachtragen</button></div>';
+}
+function editor(k){
+ const n=!k,e=S.entries[k]||{start:"08:00",end:"16:30",pause:30},d=$("#dlg");
+ d.innerHTML=`<h2>${n?"Eintrag nachtragen":"Eintrag bearbeiten"}</h2>
+ <label>Datum</label><input type="date" id="ed" value="${k||ymd(today())}" ${n?"":"disabled"} style="margin-bottom:10px">
+ <div class="grid"><div><label>Start</label><input type="time" id="es" value="${e.start}"></div><div><label>Ende</label><input type="time" id="ee" value="${e.end}"></div><div><label>Pause</label><input type="number" id="ep" min="0" value="${e.pause}"></div></div>
+ <button class="btn" id="ok">Speichern</button><button class="btn sec" id="no" style="margin-top:8px;width:100%">Abbrechen</button>`;
+ d.showModal();$("#no").onclick=()=>d.close();
+ $("#ok").onclick=()=>{const v={start:$("#es").value,end:$("#ee").value,pause:+$("#ep").value||0},dt=$("#ed").value;
+  if(!dt||!v.start||!v.end||tm(v.end)<=tm(v.start)||v.pause>=tm(v.end)-tm(v.start))return alert("Bitte gültige Werte eingeben.");
+  S.entries[dt]=v;save();d.close();render()};
+}
+function bindHist(){
+ document.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>editor(b.dataset.e));
+ document.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{if(confirm("Eintrag vom "+dl(b.dataset.d)+" löschen?")){delete S.entries[b.dataset.d];save();render()}});
+ $("#add").onclick=()=>editor();
+}
+
+function chart(items,soll){
+ const W=Math.max(300,items.length*(items.length>10?24:44)+40),H=190,pb=26,pt=12,mx=Math.max(soll*1.2,...items.map(i=>i.v),1),bw=Math.min(30,(W-40)/items.length-6);
+ const y=v=>H-pb-(v/mx)*(H-pb-pt),step=(W-40)/items.length;
+ let s=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Arbeitsstunden">`;
+ s+=`<line x1="30" x2="${W}" y1="${y(soll)}" y2="${y(soll)}" stroke="var(--neg)" stroke-dasharray="4 4"/><text x="0" y="${y(soll)+4}">${f1(soll)}</text>`;
+ items.forEach((it,i)=>{const x=34+i*step+(step-bw)/2;
+  s+=`<rect x="${x}" y="${y(it.v)}" width="${bw}" height="${Math.max(0,H-pb-y(it.v))}" rx="5" fill="${it.v>=soll?"var(--ac2)":"var(--ac)"}" opacity="${it.v?1:.25}"><title>${it.t}: ${f1(it.v)} h</title></rect><text x="${x+bw/2}" y="${H-8}" text-anchor="middle">${it.l}</text>`});
+ return s+"</svg>";
+}
+function stat(){
+ const t=today(),isW=range==="week",a=isW?monday(t):new Date(t.getFullYear(),t.getMonth(),1),b=isW?addD(a,6):new Date(t.getFullYear(),t.getMonth()+1,0);
+ const ist=sum(a,b),pdv=perDay(),sollFull=workdays(a,b)*pdv,sollNow=workdays(a,t<b?t:b)*pdv,ot=ist-sollNow,r=+S.set.rate||0,pay=sumPay(a,b);
+ const days=[];for(let d=new Date(a);d<=b;d=addD(d,1)){const e=S.entries[ymd(d)];days.push({v:e?net(e):0,l:isW?d.toLocaleDateString("de-DE",{weekday:"short"}).slice(0,2):d.getDate(),t:dl(ymd(d))})}
+ const wk=[];const m0=monday(t);for(let i=7;i>=0;i--){const s=addD(m0,-7*i);wk.push({v:sum(s,addD(s,6)),l:"KW"+isoWeek(s),t:"Woche ab "+dl(ymd(s))})}
+ return `<h1>Statistiken</h1><p class="sub">Soll vs. Ist · Überstunden</p>
+ <div class="seg"><button data-r="week" class="${isW?"on":""}">Woche</button><button data-r="month" class="${isW?"":"on"}">Monat</button></div>
+ <div class="stats"><div class="card"><div class="mu">Ist</div><div class="big">${f1(ist)} h</div></div>
+ <div class="card"><div class="mu">Soll bis heute</div><div class="big">${f1(sollNow)} h</div></div>
+ <div class="card"><div class="mu">Überstunden</div><div class="big ${ot>=0?"pos":"neg"}">${ot>=0?"+":""}${f1(ot)} h</div></div>
+ <div class="card"><div class="mu">${r?"Verdienst":"Soll gesamt"}</div><div class="big">${r?eur(pay.t):f1(sollFull)+" h"}</div>${r&&pay.s?`<div class="mu">davon Zuschläge ${eur(pay.s)}</div>`:""}</div></div>
+ <div class="card"><h2>Tägliche Stunden (${isW?"diese Woche":"dieser Monat"})</h2><div class="chart">${chart(days,pdv)}</div><p class="mu" style="margin:6px 0 0">Gestrichelt: Tages-Soll (${f1(pdv)} h)</p></div>
+ <div class="card"><h2>Wochenstunden (letzte 8 Wochen)</h2><div class="chart">${chart(wk,S.set.weekly)}</div></div>`;
+}
+function isoWeek(d){const x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())),n=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-n);return Math.ceil(((x-Date.UTC(x.getUTCFullYear(),0,1))/864e5+1)/7)}
+function bindStat(){document.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{range=b.dataset.r;render()})}
+
+function set(){const c=S.set;return `<h1>Einstellungen</h1><p class="sub">Vertrag & Darstellung</p>
+ <div class="card"><h2>Vertrag</h2>
+ <label>Wochenarbeitszeit (Std.)</label><input type="number" id="w" step="0.5" min="1" value="${c.weekly}" style="margin-bottom:12px">
+ <label>Arbeitstage pro Woche</label><input type="number" id="d" min="1" max="7" value="${c.days}" style="margin-bottom:12px">
+ <label>Stundenlohn in € (optional)</label><input type="number" id="r" step="0.01" min="0" value="${c.rate||""}" placeholder="z. B. 18,50">
+ <details id="adv" ${advOpen?"open":""}><summary>Erweiterte Einstellungen</summary>
+ <p class="mu" style="margin-top:0"><b>Zuschläge nach Uhrzeit</b> – z. B. 20–21 Uhr +25 %, ab 21 Uhr +50 %. Gilt auf den Stundenlohn (Ende 00:00 = Mitternacht). Die Pause wird als außerhalb der Zuschlagszeiten angenommen.</p>
+ ${(c.rules||[]).map((x,i)=>`<div class="rule"><div><label>Von</label><input type="time" class="rf" value="${x.from}"></div><div><label>Bis</label><input type="time" class="rt" value="${x.to}"></div><div><label>Zuschlag %</label><input type="number" class="rp" min="0" inputmode="numeric" value="${x.pct}"></div><button class="ib" data-rm="${i}" title="Entfernen" style="height:46px">🗑</button></div>`).join("")}
+ <button class="btn sec" id="ar" style="width:100%;margin-bottom:14px">+ Zuschlag hinzufügen</button>${c.rate?"":'<p class="mu" style="margin-top:0">Hinweis: Zuschläge wirken erst, wenn oben ein Stundenlohn eingetragen ist.</p>'}</details>
+ <button class="btn" id="sv">Speichern</button></div>
+ <div class="card"><h2>Darstellung</h2><button class="btn sec" id="th" style="width:100%">${dark()?"☀️ Hell":"🌙 Dunkel"} umschalten</button></div>
+ <div class="card"><h2>Daten</h2><p class="mu">Alles bleibt lokal in deinem Browser (LocalStorage).</p>
+ <button class="btn sec" id="ex" style="width:100%;margin-bottom:8px">Backup exportieren (JSON)</button>
+ <button class="btn sec" id="im" style="width:100%;margin-bottom:8px">Backup importieren</button>
+ <button class="btn sec" id="rs" style="width:100%;color:var(--neg)">Alle Daten löschen</button><input type="file" id="fi" accept=".json" hidden></div>`}
+function readRules(){const f=[...document.querySelectorAll(".rf")],t=[...document.querySelectorAll(".rt")],p=[...document.querySelectorAll(".rp")];return f.map((x,i)=>({from:x.value||"00:00",to:t[i].value||"00:00",pct:+p[i].value||0}))}
+function bindSet(){
+ $("#sv").onclick=()=>{const w=+$("#w").value,d=Math.round(+$("#d").value);if(!(w>0)||!(d>=1&&d<=7))return alert("Bitte gültige Werte eingeben.");
+  S.set.weekly=w;S.set.days=d;S.set.rate=+$("#r").value||0;S.set.rules=readRules();save();toast("Gespeichert ✓");render()};
+ $("#adv").ontoggle=e=>advOpen=e.target.open;
+ $("#ar").onclick=()=>{S.set.rules=readRules();S.set.rules.push({from:"20:00",to:"21:00",pct:25});advOpen=true;render()};
+ document.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{const r=readRules();r.splice(+b.dataset.rm,1);S.set.rules=r;advOpen=true;save();render()});
+ $("#th").onclick=()=>{S.set.theme=dark()?"light":"dark";save();render()};
+ $("#ex").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:"application/json"}));a.download="zeiterfassung-backup.json";a.click()};
+ $("#im").onclick=()=>$("#fi").click();
+ $("#fi").onchange=async e=>{try{const r=JSON.parse(await e.target.files[0].text());if(!r.entries)throw 0;S.entries=r.entries;Object.assign(S.set,r.set||{});save();toast("Importiert ✓");render()}catch(x){alert("Ungültige Datei.")}};
+ $("#rs").onclick=()=>{if(confirm("Wirklich ALLE Daten löschen?")){S.entries={};save();render()}};
+}
+render();
+</script>
+</body>
+</html>
